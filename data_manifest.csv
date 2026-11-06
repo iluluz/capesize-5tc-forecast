@@ -1,0 +1,6 @@
+file,version_date,bytes,sha256,producer,source,licence_note
+1.Capesize_5TC_BCI182_Spliced_Series_with_FFA.xlsx,2026-11-03,4543531,333990D63968EC579D86F9A4CCD9AA996270CBD9498C531B26A9B251FD79839F,team,5TC / routes / FFA (Clarksons SIN export per DL plan) [verify],licensed - shared drive only
+2.Capesize_5TC_Iron_Ore_Weekly_Data.xlsx,2026-11-03,454094,0325582A3C2A9EDF23D3E01C442852A32763A438316A9AC5E99A53D23E47A839,team,Wind iron ore weekly series,licensed - shared drive only
+3_Capesize_5TC_PortWatch_Weekly_Data.xlsx,2026-11-04,6411172,BB72921C6E64543993DBBAF8272C6A46884574792F122A4CCE9CA25A2F6E2B2A,data_pipeline/portwatch_customs,IMF PortWatch (public) - final version,check IMF terms before publishing derived data
+4.Capesize_5TC_Fleet_Supply_Monthly.xlsx,2026-11-03,231813,B36601D29919661E425D9596AE6F1CC9864310032958C36370FEC84EEE8FDD14,team,fleet supply monthly [source to fill in],treat as licensed - shared drive only
+6_Capesize_5TC_China_Customs_Monthly.xlsx,2026-11-05,1002512,B8858193777CC5BDEF2468F31DB82055DD2C148BB71E8A8F9A00F07712D3B567,data_pipeline/portwatch_customs,China Customs platform + UN Comtrade (public),shared drive only

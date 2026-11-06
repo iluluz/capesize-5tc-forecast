@@ -1,0 +1,16 @@
+# core (data, ML part, evaluation)
+numpy
+pandas
+openpyxl
+pyarrow
+scipy
+scikit-learn
+lightgbm
+statsmodels
+matplotlib
+
+# dev
+pytest
+ruff
+nbstripout
+ipykernel

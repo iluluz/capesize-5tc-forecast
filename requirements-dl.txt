@@ -1,0 +1,5 @@
+# text branch (DL part) only; install on top of requirements.txt
+torch
+transformers
+sentence-transformers
+sentencepiece

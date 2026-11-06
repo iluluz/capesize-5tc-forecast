@@ -1,0 +1,6 @@
+requests
+pandas
+numpy
+openpyxl
+pyarrow
+searoute   # install with PYTHONUTF8=1 on Chinese-locale Windows (setup.py reads its README as GBK otherwise)

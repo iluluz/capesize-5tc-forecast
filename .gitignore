@@ -1,0 +1,36 @@
+# ---- data: never in Git (licensed or large). This repository is PUBLIC. ----
+data/
+outputs/
+*.xlsx
+*.xlsm
+*.xls
+*.parquet
+*.feather
+*.csv.gz
+*.zip
+*.pdf
+*.doc
+*.docx
+*.pkl
+*.joblib
+*.pt
+*.bin
+*.safetensors
+
+# committed exceptions (small, no licensed values)
+!data_manifest.csv
+!experiments/results.csv
+
+# ---- environments, secrets, caches ----
+.venv/
+venv/
+.env
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+mlruns/
+.DS_Store
+Thumbs.db
+~$*

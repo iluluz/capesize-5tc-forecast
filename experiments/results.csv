@@ -1,0 +1,1 @@
+run_id,date_utc,git_commit,author,part,model,target,horizon,test_start,test_end,n_test,mae,rmse,theil_u,hit_rate,pinball,coverage80,dm_p_vs_ffa,notes

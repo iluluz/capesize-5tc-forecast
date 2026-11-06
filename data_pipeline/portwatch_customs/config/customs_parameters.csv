@@ -1,0 +1,10 @@
+commodity,origin,load_port,discharge_port,distance_nm,source,access_date
+IO,AU,Port Hedland,Qingdao,3531,"searoute 1.6.0 (Eurostat MARNET network), PortWatch port coordinates (ports_database_20261104T040830Z.csv); Panama/Suez excluded",2026-11-05
+IO,BR,Tubarao,Qingdao,11137,"searoute 1.6.0 (Eurostat MARNET network), PortWatch port coordinates (ports_database_20261104T040830Z.csv); Panama/Suez excluded",2026-11-05
+IO,ZA,Saldanha Bay,Qingdao,8007,"searoute 1.6.0 (Eurostat MARNET network), PortWatch port coordinates (ports_database_20261104T040830Z.csv); Panama/Suez excluded",2026-11-05
+IO,CA,Sept Iles,Qingdao,14811,"searoute 1.6.0 (Eurostat MARNET network), PortWatch port coordinates (ports_database_20261104T040830Z.csv); Panama/Suez excluded",2026-11-05
+BX,GN,Kamsar,Qingdao,11448,"searoute 1.6.0 (Eurostat MARNET network), PortWatch port coordinates (ports_database_20261104T040830Z.csv); Panama/Suez excluded",2026-11-05
+BX,AU,Weipa,Qingdao,3430,"searoute 1.6.0 (Eurostat MARNET network), PortWatch port coordinates (ports_database_20261104T040830Z.csv); Panama/Suez excluded",2026-11-05
+BX,ID,Pontianak,Qingdao,2329,"searoute 1.6.0 (Eurostat MARNET network), PortWatch port coordinates (ports_database_20261104T040830Z.csv); Panama/Suez excluded",2026-11-05
+LAG,ALL,,,20,"GACC announcement 2025 No.240, 2026 statistics release timetable: online query data (stats.customs.gov.cn) opens on the 20th of the following month (raw: data/raw/customs/gacc_2026_release_timetable_20261105T*.doc)",2026-11-05
+LAGJAN,ALL,,,28,"Same timetable, note 7: no release in February; January (and February) online data open on 20 March, i.e. 28 days later than the normal 20 Feb for January data",2026-11-05
