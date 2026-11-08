@@ -36,3 +36,6 @@ Two DL proposals exist: `docs/03_DL_Text_Branch_Design.md` and the DL workstream
 | Date | Decision | Who |
 |---|---|---|
 | 2026-11-05 | Repository created (public), data kept out of Git, manifest with SHA-256 | repo owner |
+| 2026-11-07 | ML: FFA inputs use the previous assessment (`config.FFA_LAG = 1`). BFA curves publish ~17:30 London, after the 13:00 decision time (C2); same-day FFA flattered h=5 results (FFA-implied U 1.047 → 1.127 when lagged). Text branch: news windows unaffected. | ML owner (iluluz) |
+| 2026-11-07 | ML: walk-forward uses embargo = h on top of the purge (training stops 2h rows before each test month); inner validation = 3 time-ordered folds of 250 rows, each after an h-row purge. | ML owner (iluluz) |
+| 2026-11-08 | ML extras (not used for model choice): 3-class direction classifier; extra test 2016–2018 without PortWatch (inner validation falls back to 3 shorter blocks when the window is too short for 3×250 rows); stretch h = 40/65 with an M+3 node in the FFA-implied forecast. Main h = 5/20 results unchanged. Text branch: `data/processed/baltic_5tc_trading_days.csv` (5TC publication dates, dates only) for the news-window merge. | ML owner (iluluz) |

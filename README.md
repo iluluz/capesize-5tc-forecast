@@ -13,8 +13,19 @@ uses news around the 2026 Strait of Hormuz closure.
 │  ├─ contract.py           horizons, news cutoff, ... (mirrors docs/decisions.md)
 │  ├─ calendar.py           trading-day grid, news-window assignment (12:00 UTC cutoff)
 │  ├─ targets.py            y = ln(S_{t+h}/S_t), residual target for the text branch
-│  ├─ splits.py             walk-forward splits with purge
-│  └─ io.py                 locate workbooks, check them against data_manifest.csv
+│  ├─ splits.py             walk-forward splits with purge (+ optional embargo)
+│  ├─ io.py                 locate workbooks, check them against data_manifest.csv, save/load tables
+│  ├─ config.py             ML paths and run settings (test start, embargo, FFA lag)
+│  ├─ data.py · pit.py      workbook loaders · point-in-time join (strict: available < decision date)
+│  ├─ features.py           feature store on the trading-day grid (FFA, spot, iron ore, PortWatch, fleet, customs, calendar)
+│  ├─ checks.py             gate G1 checks (PIT vs brute force, negative control, targets, grid)
+│  ├─ baselines.py          random walk, seasonal naive, FFA-implied, ridge
+│  ├─ models.py             LightGBM point (Huber) + quantiles + conformal interval, ablation groups
+│  ├─ validation.py         walk-forward runner (monthly refit, purge h + embargo h)
+│  ├─ metrics.py            Theil's U, Diebold-Mariano (HAC), Pesaran-Timmermann, 3-class F1
+│  └─ evaluation.py         runners, metrics tables, FFA+ML combination, encompassing test, export
+├─ notebooks/01_ml_pipeline.ipynb   runs G1 -> G4 end to end (outputs stripped before commit)
+│                                   + direction classifier, 2016-18 extra test, h=40/65; writes outputs/reports/ML_results.md
 ├─ tests/                   pytest; run before every PR (CI runs them too)
 ├─ data_pipeline/portwatch_customs/   pipeline that built workbooks 3 (PortWatch) and 6 (China customs)
 ├─ experiments/results.csv  one row per model run (append, never edit old rows)
@@ -23,8 +34,10 @@ uses news around the 2026 Strait of Hormuz closure.
 └─ data/  (gitignored)      local copy of the shared drive
 ```
 
-Planned (add in PRs): `src/capesize/features/`, `src/capesize/models/`, `src/capesize/eval/`, `src/capesize/text/`,
-`notebooks/` (outputs stripped).
+Planned (add in PRs): `src/capesize/text/` (text branch).
+
+ML outputs (gitignored): `data/processed/` (feature store, OOS predictions, `ml_oos_predictions.parquet` for the text
+branch) and `outputs/tables/`, `outputs/figures/`.
 
 ## Setup
 

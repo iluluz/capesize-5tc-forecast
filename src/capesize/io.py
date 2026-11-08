@@ -46,5 +46,21 @@ def check_manifest(folder: pathlib.Path | None = None) -> pd.DataFrame:
     return m.assign(status=status)[["file", "version_date", "status"]]
 
 
+def save_table(df: pd.DataFrame, path_no_ext) -> str:
+    """Parquet if an engine is installed (plan interface), else gzip-CSV fallback."""
+    try:
+        df.to_parquet(f"{path_no_ext}.parquet")
+        return f"{path_no_ext}.parquet"
+    except ImportError:
+        df.to_csv(f"{path_no_ext}.csv.gz")
+        return f"{path_no_ext}.csv.gz"
+
+
+def load_table(path_no_ext) -> pd.DataFrame:
+    if os.path.exists(f"{path_no_ext}.parquet"):
+        return pd.read_parquet(f"{path_no_ext}.parquet")
+    return pd.read_csv(f"{path_no_ext}.csv.gz", index_col=0, parse_dates=True)
+
+
 if __name__ == "__main__":
     print(check_manifest().to_string(index=False))

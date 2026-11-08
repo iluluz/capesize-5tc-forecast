@@ -13,4 +13,5 @@ matplotlib
 pytest
 ruff
 nbstripout
+tabulate
 ipykernel
