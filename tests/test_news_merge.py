@@ -41,7 +41,7 @@ def test_news_days_follow_the_contract_and_duplicates_go():
         ("2026-03-04T09:00:00Z", "Cruise line adds new routes", False),                           # irrelevant
     ])
     _, clean, per_day, report = build([df], grid)
-    days = dict(zip(clean["title"], clean["news_day"].dt.date))
+    days = dict(zip(clean["title"], clean["news_day"].dt.date, strict=True))
     assert days["Iran closes the Strait of Hormuz to shipping"] == date(2026, 3, 2)   # weekend rolls to Monday
     assert days["Capesize rates firm on iron ore demand"] == date(2026, 3, 9)          # 23:59:59 -> next window
     assert days["Iron ore slips before Easter break"] == date(2026, 4, 7)              # Good Friday + Easter Monday
