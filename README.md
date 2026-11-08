@@ -17,6 +17,7 @@ uses news around the 2026 Strait of Hormuz closure.
 │  └─ io.py                 locate workbooks, check them against data_manifest.csv
 ├─ tests/                   pytest; run before every PR (CI runs them too)
 ├─ data_pipeline/portwatch_customs/   pipeline that built workbooks 3 (PortWatch) and 6 (China customs)
+├─ data_pipeline/news/              news headlines for the text branch (sources, pipeline, results: see its README)
 ├─ experiments/results.csv  one row per model run (append, never edit old rows)
 ├─ docs/                    01 repo setup · 02 ML plan · 03 DL text branch · decisions.md
 ├─ data_manifest.csv        file, date, bytes, SHA-256, source, licence note

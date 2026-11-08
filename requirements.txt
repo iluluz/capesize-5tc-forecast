@@ -1,6 +1,7 @@
 # core (data, ML part, evaluation)
 numpy
 pandas
+requests
 openpyxl
 pyarrow
 scipy
