@@ -8,9 +8,9 @@ Owner: Ninon. Article text is licensed and never committed; this folder holds co
 
 | Source | Content | Collection | Collected | Kept after cleaning |
 | --- | --- | --- | --- | --- |
-| Reuters via Factiva (MIT licence) | headline + first paragraph, exact timestamps | export by Christella | 2,298 | 2,032 |
-| Hellenic Shipping News | dry bulk market reports, broker commentary, republished wires | WordPress REST API | 26,195 | 6,336 |
-| gCaptain | maritime security, Hormuz coverage | WordPress REST API | 4,038 | 1,422 |
+| Reuters via Factiva (MIT licence) | headline + first paragraph, exact timestamps | export by Christella | 2,298 | 1,997 |
+| Hellenic Shipping News | dry bulk market reports, broker commentary, republished wires | WordPress REST API | 26,195 | 6,129 |
+| gCaptain | maritime security, Hormuz coverage | WordPress REST API | 4,038 | 1,386 |
 | GDELT | global news, titles + URLs | to be added | — | — |
 
 Terms checked 2026-11-07. Hellenic Shipping News has no terms of use; its Disclaimer forbids republication
@@ -34,11 +34,11 @@ not collected (no terms found). Reuters/Factiva content is not redistributable.
    titles on the same day (ratio ≥ 0.95). Optional `--embed-dedup`: cosine > 0.92 on MiniLM embeddings.
 6. **Volume check** (`volume_plot.py`): headlines per trading day by source.
 
-## Results (provisional trading-day grid)
+## Results (Baltic 5TC trading days, 2025-08-01 → 2026-10-23)
 
-9,790 relevant headlines over 323 trading days: 30.3 per day on average, no day below 5.
-Monthly volume is stable at about 370 until January 2026, rises in February, triples in March (1,164) after
-the closure on 2026-02-28, and stays near 900 until July. All three sources move together.
+9,512 relevant headlines over 309 trading days: 30.8 per day on average, no day below 5.
+Monthly volume is stable at about 370 until December 2025, rises in January and February, triples in March
+(1,164) after the closure on 2026-02-28, and stays near 900 until July. All three sources move together.
 
 ## Reproduce
 
@@ -59,7 +59,7 @@ Outputs, under `CAPESIZE_LOCAL_DIR` (default `data/`, gitignored): `raw/news/<so
 
 ## Known limitations
 
-- **Trading days are provisional** (London business days) until the 5TC publication dates are passed with `--trading-days`.
+-  **News after 2026-10-23 is not used**: the 5TC series ends there, so later items have no trading day; re-run the merge with an updated date file when the ML team extends workbook 1.
 - **Relevance is about 80%** on a spot check; broad terms (tanker, bunker, newbuilding) let in some general
   shipping news. The classifier's "Not relevant" label handles the rest.
 - **Cross-source duplicates may be undercounted**: Hellenic republishes wire stories with reworded titles; run `--embed-dedup`.
