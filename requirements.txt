@@ -8,6 +8,8 @@ scikit-learn
 lightgbm
 statsmodels
 matplotlib
+arch                 # MCS (ml-v1.1 evaluation)
+joblib
 
 # dev
 pytest

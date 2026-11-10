@@ -34,6 +34,18 @@ def build_store(ffa_lag: int | None = None, horizons=C.HORIZONS + C.STRETCH_HORI
     return store, dict(g=g, X=X, A=A, srcs=srcs, curve=curve)
 
 
+def build_store_v2(ffa_lag: int | None = None, horizons=C.HORIZONS + C.STRETCH_HORIZONS, regime=True, macro=True):
+    """v2 store (ml-v1.1 candidates): v1 store + extra feature groups F1-F7 (features_v2, regime, macro)."""
+    from capesize import features_v2 as F2
+    from capesize.targets import build_targets
+    g, X, A, srcs, curve = F2.build_feature_store_v2(ffa_lag, regime=regime, macro=macro)
+    store = pd.concat([X, build_targets(g["S"], horizons)], axis=1)
+    for h in C.HORIZONS:
+        store[f"ffa_hat_h{h}"] = B.ffa_implied(curve, g["S"], h)
+    store = pd.concat([store, F2.ffa_bias_features(store)], axis=1)
+    return store, dict(g=g, X=X, A=A, srcs=srcs, curve=curve)
+
+
 def with_stretch_ffa(store: pd.DataFrame, curve: pd.DataFrame, horizons=C.STRETCH_HORIZONS) -> pd.DataFrame:
     """Copy of the store with ffa_hat_h{h} for the stretch horizons (h = 40/65). Kept out of the main store so
     the h = 5/20 models do not gain extra features."""
@@ -73,10 +85,10 @@ def _lgbm_task(X, y, base, tr, te, h, kw):
 
 
 def run_lgbm(store: pd.DataFrame, h: int, name="lgbm", drop_groups=(), residual=False, n_jobs=-1,
-             test_start=C.TEST_START, test_end=None, **kw) -> pd.DataFrame:
+             test_start=C.TEST_START, test_end=None, feats=None, **kw) -> pd.DataFrame:
     """Walk-forward LightGBM for one horizon; folds run in parallel (each fold sees only its train rows).
     residual=True: learn y - ffa_hat_h{h} and predict ffa_hat + r_hat."""
-    feats = ML.feature_columns(store.columns, drop_groups)
+    feats = ML.feature_columns(store.columns, drop_groups) if feats is None else list(feats)
     X, y = store[feats], store[f"y_h{h}"].to_numpy()
     base = store[f"ffa_hat_h{h}"].to_numpy() if residual else None
     folds = list(V.folds(store, h, test_start, test_end))
@@ -86,6 +98,21 @@ def run_lgbm(store: pd.DataFrame, h: int, name="lgbm", drop_groups=(), residual=
         base_df = pd.DataFrame({"date": store.index[te], "h": h, "y_true": y[te]})
         out.append(pd.concat([base_df, pd.DataFrame(r)], axis=1).assign(model=name, train_end=store.index[tr_end]))
     return pd.concat(out, ignore_index=True)
+
+
+RIDGE2_EXTRA = ["fb_err60_h{h}", "fb_season_h{h}", "ffa_basis_sa", "ffa_curv", "pth_dd60", "rt_atl_pac",
+                "rg_p_highvol"]
+
+
+def run_ridge(store: pd.DataFrame, h: int, feats, name: str, residual=False, test_start=C.TEST_START,
+              test_end=None) -> pd.DataFrame:
+    """Ridge (same procedure as the v1 baseline) on an explicit feature list; residual=True learns y - ffa_hat."""
+    yv = store[f"y_h{h}"].to_numpy()
+    f = store[f"ffa_hat_h{h}"].fillna(0).to_numpy() if residual else np.zeros(len(store))
+    Xr = store[list(feats)]
+    return V.walk_forward(store, h, lambda tr, te: f[te] + B.ridge_fit_predict(Xr.iloc[tr], yv[tr] - f[tr],
+                                                                                Xr.iloc[te], h),
+                          name, test_start, test_end)
 
 
 def run_lgbm_cls(store: pd.DataFrame, h: int, name="lgbm_cls", drop_groups=(), n_jobs=-1,

@@ -21,6 +21,13 @@ FEATURE_GROUPS = {
     "fleet": ("fl_",),
     "customs": ("cu_",),
     "calendar": ("cal_",),
+    # v2 groups (ml-v1.1 candidates; absent from the v1 store, so v1 runs are unchanged)
+    "bias": ("fb_",),
+    "route": ("rt_",),
+    "path": ("pth_",),
+    "util": ("ut_",),
+    "regime": ("rg_",),
+    "macro": ("mc_",),
 }
 ABLATIONS = {                      # docs/02 3.7: -FFA, -spot dynamics, -PortWatch, -fundamentals (2/4/6)
     "-ffa": ("ffa",),
@@ -109,8 +116,35 @@ def recency_weights(n: int, halflife: int | None):
     return None if not halflife else 0.5 ** ((n - 1 - np.arange(n)) / halflife)
 
 
+def stability_select(Xtr: pd.DataFrame, t: np.ndarray, h: int, folds, k_max=35, k_min=15, seed=0) -> list[str]:
+    """F8: in-window stability selection. On each inner fold fit a small Huber LightGBM (early-stopped), compute
+    permutation importance (increase in validation MSE) per feature; keep features with positive importance in at
+    least 2 of the folds, ranked by mean importance, capped at k_max (at least k_min). Training rows only."""
+    rng = np.random.default_rng(seed)
+    cols = list(Xtr.columns)
+    imp = np.zeros((len(folds), len(cols)))
+    p = dict(num_leaves=7, min_data_in_leaf=100)
+    for j, (a, v) in enumerate(folds):
+        m, _, _ = _fit("huber", p, cols, Xtr.iloc[a], t[a], val=(Xtr.iloc[v], t[v]), alpha=float(np.std(t[a])))
+        Xv = Xtr.iloc[v].copy()
+        base = np.mean((t[v] - m.predict(Xv)) ** 2)
+        for i, c in enumerate(cols):
+            keep = Xv[c].to_numpy().copy()
+            Xv[c] = rng.permutation(keep)
+            imp[j, i] = np.mean((t[v] - m.predict(Xv)) ** 2) - base
+            Xv[c] = keep
+    votes = (imp > 0).sum(axis=0)
+    order = np.argsort(-imp.mean(axis=0))
+    need = max(2, len(folds) - 1)
+    chosen = [cols[i] for i in order if votes[i] >= need][:k_max]
+    if len(chosen) < k_min:
+        chosen = [cols[i] for i in order[:k_min]]
+    return chosen
+
+
 def lgbm_fold(Xtr: pd.DataFrame, ytr: np.ndarray, Xte: pd.DataFrame, h: int, base_tr=None, base_te=None,
-              grid=GRID, quantiles=QUANTILES, conformal=True, halflife=None, return_model=False):
+              grid=GRID, quantiles=QUANTILES, conformal=True, halflife=None, return_model=False, select=None,
+              params_scale=None, rpd=1):
     """One walk-forward fold. Returns dict of test-row columns: yhat, q10, q50, q90, lo80, hi80 (+ meta)."""
     ytr = np.asarray(ytr, dtype=float)
     b_tr = np.zeros(len(ytr)) if base_tr is None else np.asarray(base_tr, dtype=float)
@@ -123,7 +157,13 @@ def lgbm_fold(Xtr: pd.DataFrame, ytr: np.ndarray, Xte: pd.DataFrame, h: int, bas
     n = len(Xtr)
     w = recency_weights(n, halflife)
     huber = dict(alpha=float(np.std(t)))              # Huber delta ~ 1 sd (LightGBM default 0.9 ~ L2 here)
-    folds = inner_splits(n, h)
+    # rpd = rows per date (route panel): purge / validation blocks are scaled so they stay in calendar time
+    folds = inner_splits(n, h * rpd, val=INNER_VAL * rpd, min_inner=250 * rpd) if rpd > 1 else inner_splits(n, h)
+    if select:
+        cols = stability_select(Xtr, t, h, folds, k_max=select)
+        Xtr, Xte = Xtr[cols], Xte[cols]
+    if params_scale:                                   # robustness (plan v2 6.5): scale grid parameters
+        grid = [{k: max(2, int(round(v * params_scale.get(k, 1.0)))) for k, v in p.items()} for p in grid]
 
     def sub(idx):
         return None if w is None else w[idx]
