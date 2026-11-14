@@ -20,10 +20,14 @@ sample). A real effect should disappear in (a) and (c).
 Usage (from the repository root):
     python -m data_pipeline.news.forecast_test --ml data/processed/ml_oos_predictions.parquet        # ml-v1.1
     python -m data_pipeline.news.forecast_test --ml data/processed/ml_oos_predictions_v1.0.parquet   # ml-v1.0
+Add --log to append one row per model, horizon and test period to experiments/results.csv.
 Writes data/processed/forecast_test_results_<ML version>.md and .csv (metrics only), so the results for
 ml-v1.1 and ml-v1.0 are kept side by side.
 """
 import argparse
+import csv
+import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -109,6 +113,7 @@ def block_bootstrap(e_base: np.ndarray, e_new: np.ndarray, h: int, reps: int = 2
 def metrics(y: np.ndarray, base: np.ndarray, new: np.ndarray, h: int, with_tests: bool = True) -> dict:
     e_b, e_n = y - base, y - new
     row = {"MAE": np.abs(e_n).mean(), "RMSE": np.sqrt((e_n ** 2).mean()),
+           "Theil U": np.sqrt((e_n ** 2).mean()) / np.sqrt((y ** 2).mean()),  # vs the no-change forecast
            "hit rate": (np.sign(new) == np.sign(y)).mean(),
            "MAE vs ML": np.abs(e_n).mean() / np.abs(e_b).mean() - 1}
     if with_tests:
@@ -136,6 +141,8 @@ def run_horizon(ml: pd.DataFrame, feats: pd.DataFrame, h: int) -> tuple[pd.DataF
     for period, mask in (("test (event window)", test), ("extended test", extended)):
         for model, p in preds.items():
             rows.append({"h": h, "period": period, "model": model, "n days": int(mask.sum()),
+                         "test_start": df.index[mask].min().date(), "test_end": df.index[mask].max().date(),
+                         "ridge penalty": alphas.get(model.replace("ML + ", ""), ""),
                          **metrics(y[mask], base[mask], p[mask], h, with_tests=model != "ML only")})
     results = pd.DataFrame(rows)
 
@@ -163,6 +170,54 @@ def run_horizon(ml: pd.DataFrame, feats: pd.DataFrame, h: int) -> tuple[pd.DataF
     return results, placebo, info
 
 
+RESULTS_COLUMNS = ["run_id", "date_utc", "git_commit", "author", "part", "model", "target", "horizon",
+                   "test_start", "test_end", "n_test", "mae", "rmse", "theil_u", "hit_rate", "pinball",
+                   "coverage80", "dm_p_vs_ffa", "notes"]
+
+
+def log_runs(results: pd.DataFrame, placebo: pd.DataFrame, version: str, author: str) -> Path:
+    """Append one row per model, horizon and test period to experiments/results.csv (README rule)."""
+    path = config.REPO_ROOT / "experiments" / "results.csv"
+    with path.open(encoding="utf-8") as f:
+        header = next(csv.reader(f))
+    if header != RESULTS_COLUMNS:
+        raise ValueError(f"Unexpected columns in {path}: {header}")
+    try:
+        commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
+                                cwd=config.REPO_ROOT, check=True).stdout.strip()
+    except Exception:
+        commit = "unknown"
+    now = datetime.now(timezone.utc)
+    rows = []
+    for _, r in results.iterrows():
+        pl = placebo[placebo["h"] == r["h"]].set_index("text")["MAE vs ML"]
+        notes = [f"text branch, ML base {version}", f"period: {r['period']}"]
+        if r["model"] != "ML only":
+            notes += [f"MAE vs ML {r['MAE vs ML']:+.1%}", f"DM p vs ML {r['DM p-value']:.3f}",
+                      f"90% CI of MAE change {r['MAE change 90% CI']}"]
+        if r["ridge penalty"] != "":
+            notes.append(f"ridge penalty {r['ridge penalty']}")
+        if "fine-tuned" in r["model"] and r["period"].startswith("test"):
+            notes.append("placebos (MAE vs ML): " + ", ".join(f"{k} {v:+.1%}" for k, v in pl.items() if "share" not in k))
+        notes.append("theil_u = RMSE / RMSE of the no-change forecast")
+        slug = r["model"].replace("ML + ", "").replace(" ", "-").replace("(", "").replace(")", "").lower()
+        rows.append({
+            "run_id": f"text-{version}-{slug}-h{r['h']}-{'event' if r['period'].startswith('test') else 'ext'}-{now:%Y%m%d%H%M}",
+            "date_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "git_commit": commit, "author": author, "part": "text",
+            "model": r["model"] if r["model"] == "ML only" or "constant" in r["model"]
+                     else f"{r['model']} (ridge on ML residual)",
+            "target": "ln(5TC_t+h / 5TC_t)", "horizon": r["h"], "test_start": r["test_start"],
+            "test_end": r["test_end"], "n_test": r["n days"], "mae": round(r["MAE"], 6), "rmse": round(r["RMSE"], 6),
+            "theil_u": round(r["Theil U"], 4), "hit_rate": round(r["hit rate"], 4), "pinball": "",
+            "coverage80": "", "dm_p_vs_ffa": "", "notes": "; ".join(notes)})
+    needs_newline = path.read_bytes()[-1:] not in (b"\n", b"")
+    with path.open("a", encoding="utf-8", newline="") as f:
+        if needs_newline:
+            f.write("\n")
+        csv.DictWriter(f, fieldnames=RESULTS_COLUMNS, lineterminator="\n").writerows(rows)
+    return path
+
+
 def md(t: pd.DataFrame) -> str:
     try:
         return t.to_markdown(index=False, floatfmt=".4f")
@@ -173,6 +228,8 @@ def md(t: pd.DataFrame) -> str:
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--ml", type=Path, default=config.PROCESSED_DIR / "ml_oos_predictions.parquet")
+    p.add_argument("--log", action="store_true", help="append the runs to experiments/results.csv")
+    p.add_argument("--author", default="Ninon")
     args = p.parse_args()
 
     ml = pd.read_parquet(args.ml)
@@ -190,11 +247,12 @@ def main():
         parts.append(res)
         placebos.append(pl)
     results, placebo = pd.concat(parts), pd.concat(placebos)
+    shown = results.drop(columns=["test_start", "test_end", "ridge penalty"])
 
     txt = (f"# With/without-news forecast test\n\nML predictions: {args.ml.name} ({version}). "
            f"Text model: ridge on 5 daily text features, learning the ML residual.\n\n"
            + "".join(f"- h = {h}: {v}\n" for h, v in infos.items())
-           + f"\n## Forecast accuracy (MAE vs ML < 0 means the text helps)\n\n{md(results)}\n\n"
+           + f"\n## Forecast accuracy (MAE vs ML < 0 means the text helps)\n\n{md(shown)}\n\n"
            f"## Placebo tests on the test window\n\n{md(placebo)}\n\n"
            "With h = 20 the test window has only about 4-5 independent observations per month: read the "
            "DM p-values and intervals with caution.\n")
@@ -205,6 +263,8 @@ def main():
     results.to_csv(out.with_suffix(".csv"), index=False)
     print(txt)
     print(f"Saved {out} and {out.with_suffix('.csv').name}")
+    if args.log:
+        print(f"Added {len(results)} rows to {log_runs(results, placebo, version, args.author)}")
 
 
 if __name__ == "__main__":
