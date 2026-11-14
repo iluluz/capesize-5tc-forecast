@@ -1,0 +1,4 @@
+# optional: M9 foundation-model experiments (Chronos-Bolt / Chronos-2, CPU is enough). Not used by ml-v1.1.
+-r requirements.txt
+torch
+chronos-forecasting>=2.3
