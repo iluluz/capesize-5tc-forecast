@@ -26,6 +26,7 @@ outputs/
 venv/
 .env
 __pycache__/
+*.egg-info/
 *.pyc
 .ipynb_checkpoints/
 .pytest_cache/

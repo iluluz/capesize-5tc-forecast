@@ -13,19 +13,39 @@ uses news around the 2026 Strait of Hormuz closure.
 │  ├─ contract.py           horizons, news cutoff, ... (mirrors docs/decisions.md)
 │  ├─ calendar.py           trading-day grid, news-window assignment (12:00 UTC cutoff)
 │  ├─ targets.py            y = ln(S_{t+h}/S_t), residual target for the text branch
-│  ├─ splits.py             walk-forward splits with purge
-│  └─ io.py                 locate workbooks, check them against data_manifest.csv
+│  ├─ splits.py             walk-forward splits with purge (+ optional embargo)
+│  ├─ io.py                 locate workbooks, check them against data_manifest.csv, save/load tables
+│  ├─ config.py             ML paths and run settings (test start, embargo, FFA lag)
+│  ├─ data.py · pit.py      workbook loaders · point-in-time join (strict: available < decision date)
+│  ├─ features.py           feature store on the trading-day grid (FFA, spot, iron ore, PortWatch, fleet, customs, calendar)
+│  ├─ checks.py             gate G1 checks (PIT vs brute force, negative control, targets, grid)
+│  ├─ baselines.py          random walk, seasonal naive, FFA-implied, ridge
+│  ├─ models.py             LightGBM point (Huber) + quantiles + conformal interval, ablation groups
+│  ├─ validation.py         walk-forward runner (monthly refit, purge h + embargo h)
+│  ├─ metrics.py            Theil's U, Diebold-Mariano (HAC), Pesaran-Timmermann, 3-class F1
+│  ├─ evaluation.py         runners, metrics tables, FFA+ML combination, encompassing test, export
+│  ├─ features_v2.py · regime.py · macro.py   v1.1 feature groups (FFA bias, curve, routes, path, utilisation, Markov regime, FRED)
+│  ├─ stats_models.py       VECM (spot + FFA curve), ARMA
+│  ├─ ensemble.py           equal-weight / inverse-MSE / stacking ensembles, ACI intervals
+│  ├─ panel.py · products.py · foundation.py   route panel · turning points, monthly vs FFA, backtests · Chronos (optional)
+├─ notebooks/01_ml_pipeline.ipynb   runs G1 -> G4 end to end (outputs stripped before commit)
+│                                   + direction classifier, 2016-18 extra test, h=40/65; writes outputs/reports/ML_results.md
 ├─ tests/                   pytest; run before every PR (CI runs them too)
 ├─ data_pipeline/portwatch_customs/   pipeline that built workbooks 3 (PortWatch) and 6 (China customs)
 ├─ data_pipeline/news/              news headlines for the text branch (sources, pipeline, results: see its README)
 ├─ experiments/results.csv  one row per model run (append, never edit old rows)
-├─ docs/                    01 repo setup · 02 ML plan · 03 DL text branch · decisions.md
+├─ docs/                    01 repo setup · 02 ML plan · 03 DL text branch · 04 ML v1.1 hand-over · decisions.md
 ├─ data_manifest.csv        file, date, bytes, SHA-256, source, licence note
 └─ data/  (gitignored)      local copy of the shared drive
 ```
 
-Planned (add in PRs): `src/capesize/features/`, `src/capesize/models/`, `src/capesize/eval/`, `src/capesize/text/`,
-`notebooks/` (outputs stripped).
+Planned (add in PRs): `src/capesize/text/` (text branch).
+
+ML outputs (gitignored): `data/processed/` (feature store, OOS predictions, `ml_oos_predictions.parquet` for the text
+branch) and `outputs/tables/`, `outputs/figures/`.
+
+**Current ML release: `ml-v1.1`** (tag). Text branch: read [docs/04_ML_v1.1_Handover.md](docs/04_ML_v1.1_Handover.md).
+`ml-v1.0` remains tagged; its predictions are kept as `ml_oos_predictions_v1.0.parquet`.
 
 ## Setup
 
@@ -34,7 +54,7 @@ git clone https://github.com/iluluz/capesize-5tc-forecast.git
 cd capesize-5tc-forecast
 python -m venv .venv
 .venv\Scripts\activate                # macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt       # text branch: also pip install -r requirements-dl.txt
+pip install -r requirements.txt       # text branch: also requirements-dl.txt; Chronos runs: requirements-fm.txt
 pip install -e .
 copy .env.example .env                # then set CAPESIZE_DATA_DIR to your local copy of the workbooks
 python -m capesize.io                 # every workbook should say "ok"
