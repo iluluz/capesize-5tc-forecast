@@ -54,7 +54,7 @@ Before the closure all three move together; after it, the Capesize-specific mode
 - One crisis, ~14 months of news: results are a case study, not a general law.
 
 ## 6. Reproduce
-1. News: `data_pipeline/news/` (scrapers + merge) and `text_signal/factiva_clean.py` (Factiva exports) → `headlines_clean.parquet`
+1. News: `data_pipeline/news/` (scrapers + merge) and `text_branch/factiva_clean.py` (Factiva exports) → `headlines_clean.parquet`
 2. Labels: `colab/01_llm_labels.ipynb` (Colab T4, ~2h20)
 3. Fine-tune + score + accuracy: `colab/02_finetune_finbert.ipynb` (Colab T4, ~15 min)
 4. Daily features: [Ninon's script]
