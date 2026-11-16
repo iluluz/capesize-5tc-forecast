@@ -1,4 +1,4 @@
-# Text branch: news sentiment for Capesize rates (DRAFT)
+# Text branch: news sentiment for Capesize rates
 
 **Question:** does daily shipping and commodity news, scored by a model that understands what is good or bad *for Capesize freight rates*, make the 5TC forecast more accurate, especially around the Strait of Hormuz closure (28 Feb 2026)?
 
@@ -28,13 +28,17 @@ General financial sentiment often points the wrong way for freight: an attack ne
 - **Daily features** (`text_daily_features.parquet`, 309 trading days): mean sentiment (P(bullish) − P(bearish)) for each model, bullish/bearish shares, per-topic sentiment (freight, Hormuz, iron ore/coal), 5- and 20-day backward-looking averages, relative news volume.
 
 ## 4. Results
-**Accuracy against our hand labels** (n = [__], headlines where we agree):
-| Model | Accuracy | Macro-F1 |
-|---|---|---|
-| Plain FinBERT | [__] | [__] |
-| LLM (Qwen2.5-7B) | [__] | [__] |
-| Fine-tuned FinBERT, headline + lead | [__] | [__] |
-Human agreement: [__]% (Cohen's κ = [__]).
+**Accuracy against our hand labels** (2 annotators labelled the same 100 headlines blind: 89% agreement, Cohen's κ = 0.85; gold set = the 89 headlines where both agree):
+| Model | Accuracy | Macro-F1 | Direction swaps* |
+|---|---|---|---|
+| Plain FinBERT, headline | 41.6% | 0.350 | 26.3% |
+| Plain FinBERT, headline + lead | 32.6% | 0.277 | 36.8% |
+| LLM (Qwen2.5-7B) | 65.2% | 0.658 | 13.2% |
+| Fine-tuned FinBERT, headline + lead | 64.0% | 0.659 | 10.5% |
+| **Fine-tuned FinBERT, headline** | **66.3%** | **0.676** | **5.3%** |
+
+\*Share of directional headlines labelled the opposite way (bullish ↔ bearish). Plain FinBERT has no "not relevant" class. Leaving out the one headline that is also a prompt example changes the LLM to 64.8%.
+The small fine-tuned model matches the 7B LLM it learned from and makes far fewer direction errors than general sentiment. Its main error is calling neutral headlines bullish (10 of 32), the bullish lean also visible in Jun–Jul 2026.
 
 **Hormuz case study** (average daily sentiment, −1 bearish … +1 bullish):
 | Model | Before closure | After closure | After 28 Mar (out-of-sample) |
@@ -45,17 +49,22 @@ Human agreement: [__]% (Cohen's κ = [__]).
 
 Before the closure all three move together; after it, the Capesize-specific models turn bullish while general tone turns negative. Chart: `figures/hormuz_case_study.png`.
 
-**Does news improve the forecast?** (ML residual model, `ml-v1.1`, v1.0 as check, h = 5 and 20): [__ with/without-news results, DM test, placebos (shuffled and 5-day-shifted news)].
+**Does news improve the forecast?** A ridge model on 5 daily text features learns the error of the ML forecast (walk-forward inside the event window; same result on `ml-v1.1` and `ml-v1.0`):
+- **No reliable gain beyond a bias correction.** At h = 20 the error drops 20–28% with news, but a constant alone gives −18%, and the placebo with news from an unrelated period does as well as the real news.
+- **By-product for the ML team:** the ML forecast was systematically biased after the closure; a simple bias correction improves the 4-week forecast by about 18%.
+- Code and detailed results: `data_pipeline/news/forecast_test.py` and `data_pipeline/news/README.md`.
+
+**Takeaway:** the text model reads the news correctly for Capesize (and turned bullish weeks before rates rose), but in a 14-month window it does not add forecast accuracy on top of the ML model. Best use: monitoring and early warning around shocks, and a longer history before using it as a forecast input.
 
 ## 5. Limitations
-- 100 hand-labelled headlines: accuracy is ±~9 percentage points.
-- Fine-tuned FinBERT leans more bullish than the LLM (32% vs 26% bullish), e.g. Jun–Jul 2026.
+- 100 hand-labelled headlines (89 in the gold set): accuracy is ±~10 percentage points.
+- Fine-tuned FinBERT leans bullish (32% bullish vs 26% for the LLM; neutral → bullish is its main error).
 - Reuters text is licensed: the code is here, the data is not. Re-running needs MIT Factiva access.
-- One crisis, ~14 months of news: results are a case study, not a general law.
+- One crisis, ~14 months of news (~87 test days): too short to detect a small forecasting effect; the case study is suggestive, not proof.
 
 ## 6. Reproduce
 1. News: `data_pipeline/news/` (scrapers + merge) and `text_branch/factiva_clean.py` (Factiva exports) → `headlines_clean.parquet`
 2. Labels: `colab/01_llm_labels.ipynb` (Colab T4, ~2h20)
 3. Fine-tune + score + accuracy: `colab/02_finetune_finbert.ipynb` (Colab T4, ~15 min)
-4. Daily features: [Ninon's script]
-5. Chart: `python plot_hormuz.py`
+4. Scoring, daily features, hand-check evaluation, forecast test: `data_pipeline/news/` (`score_finbert.py`, `daily_features.py`, `evaluate_check.py`, `forecast_test.py`)
+5. Charts: `python text_branch/plot_hormuz.py` (news only; with `--tc <5TC workbook>` it adds the licensed 5TC panel and saves `*_PRIVATE.png`, never commit those)
