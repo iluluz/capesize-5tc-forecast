@@ -47,7 +47,7 @@ The small fine-tuned model matches the 7B LLM it learned from and makes far fewe
 | LLM labels | +0.05 | +0.22 | +0.18 |
 | Plain FinBERT | +0.08 | −0.06 | −0.05 |
 
-Before the closure all three move together; after it, the Capesize-specific models turn bullish while general tone turns negative. Chart: `figures/hormuz_case_study.png`.
+Before the closure all three move together; after it, the Capesize-specific models turn bullish while general tone turns negative. ![Hormuz case study: news sentiment around the closure](figures/hormuz_case_study.png)
 
 **Does news improve the forecast?** A ridge model on 5 daily text features learns the error of the ML forecast (walk-forward inside the event window; same result on `ml-v1.1` and `ml-v1.0`):
 - **No reliable gain beyond a bias correction.** At h = 20 the error drops 20–28% with news, but a constant alone gives −18%, and the placebo with news from an unrelated period does as well as the real news.
