@@ -61,11 +61,12 @@ Outputs, under `CAPESIZE_LOCAL_DIR` (default `data/`, gitignored): `raw/news/<so
 
 100 headlines labelled independently by two team members with the shared guide (A bullish, B neutral,
 C bearish, D not relevant for Capesize rates): agreement 89%, Cohen's kappa 0.85. The 89 headlines where
-both agree are the gold set (⁠`evaluate_check.py`).
+both agree are the gold set (`evaluate_check.py`).
 
 | Model | Accuracy | Macro-F1 | Direction swaps |
 | --- | --- | --- | --- |
 | Plain FinBERT (headline) | 0.42 | 0.35 | 0.26 |
+| Plain FinBERT (headline + lead) | 0.33 | 0.28 | 0.37 |
 | LLM labels (Qwen2.5-7B-Instruct, released Sep 2024) | 0.65 | 0.66 | 0.13 |
 | Fine-tuned FinBERT (headline + lead) | 0.64 | 0.66 | 0.11 |
 | Fine-tuned FinBERT (headline) | 0.66 | 0.68 | 0.05 |
@@ -75,26 +76,32 @@ The fine-tuned models were trained on the LLM labels of headlines before 2026-03
 check headlines excluded. With 89 headlines each accuracy is about ±10 points, so the LLM and both
 fine-tuned versions are equivalent.
 
+The slides compare both models on headline + lead (0.33 vs 0.64), the same input as the daily features and
+the forecast test. On headline only the gap is 0.42 vs 0.66; in both cases the 95% ranges do not overlap.
+
 ## Forecast test
 
-⁠`forecast_test.py` ⁠: a ridge model learns the ML residual (y_true − yhat) from 5 daily text features.
+`forecast_test.py`: a ridge model learns the ML residual (y_true − yhat) from 5 daily text features.
 Splits around the closure: train up to 2026-03-27, validation April 2026, test 2026-04-28 → 2026-08-28,
 each training set purged by h trading days. Placebos: news shuffled across days, stale news (5 days),
-news from an unrelated period. Runs on ml-v1.1 and ml-v1.0 are logged in ⁠`experiments/results.csv`⁠.
+news from an unrelated period. Runs on ml-v1.1 and ml-v1.0 are logged in `experiments/results.csv`.
 
 - **h = 5:** no gain from news. A constant bias correction does as well, and shuffled news matches real news.
-- ⁠**h = 20:** text cuts the MAE by 20–28%, but a constant alone gives −18 to −19% (the only significant
-  result, DM p ≈ 0.03) and the unrelated-period placebo does as well as real news (−30%). The gain comes
+- **h = 20:** text cuts the MAE by 20–28%, but a constant alone gives −18 to −19% (significant,
+  DM p ≈ 0.03) and the unrelated-period placebo does as well as real news (−30%). The gain comes
   from correcting the ML bias after the closure and from the features' slow-moving level, not from
   day-specific news.
-- ⁠Same conclusions on both ML versions.
+- Same conclusions on both ML versions.
 
 ## Known limitations
 
--  **News after 2026-10-23 is not used**: the 5TC series ends there, so later items have no trading day; re-run the merge with an updated date file when the ML team extends workbook 1.
+- **News after 2026-10-23 is not used**: the 5TC series ends there, so later items have no trading day;
+  re-run the merge with an updated date file when the ML team extends workbook 1.
 - **Relevance is about 80%** on a spot check; broad terms (tanker, bunker, newbuilding) let in some general
   shipping news. The classifier's "Not relevant" label handles the rest.
-- **Cross-source duplicates may be undercounted**: Hellenic republishes wire stories with reworded titles; run `--embed-dedup`.
+- **Cross-source duplicates may be undercounted**: Hellenic republishes wire stories with reworded titles;
+  run `--embed-dedup`.
 - **27% of Reuters items have no usable lead** (editorial notes, datelines), relevant for the headline vs.
   headline + lead comparison.
-- **Headline volume rises with the crisis**, so daily features should rely on averages and shares rather than raw counts.
+- **Headline volume rises with the crisis**, so daily features should rely on averages and shares rather
+  than raw counts.
